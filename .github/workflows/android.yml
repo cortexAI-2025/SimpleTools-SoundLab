@@ -4,7 +4,7 @@ permissions:
   contents: read
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
@@ -13,7 +13,13 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/wrapper-validation@v4
-      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Install Android SDK packages
+        run: |
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager=$(find "$sdk/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)
+          test -x "$manager"
+          echo "${manager%/*}" >> "$GITHUB_PATH"
+          "$manager" --sdk_root="$sdk" 'platforms;android-35' 'build-tools;35.0.0'
       - run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
       - name: Verify signed APK and permissions
         run: |
@@ -41,7 +47,7 @@ jobs:
             app/build/reports/lint-results-debug.*
             app/schemas/
   emulator:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
@@ -49,7 +55,13 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - run: sdkmanager 'platforms;android-35'
+      - name: Install Android SDK packages
+        run: |
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          manager=$(find "$sdk/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)
+          test -x "$manager"
+          echo "${manager%/*}" >> "$GITHUB_PATH"
+          "$manager" --sdk_root="$sdk" 'platforms;android-35'
       - run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
