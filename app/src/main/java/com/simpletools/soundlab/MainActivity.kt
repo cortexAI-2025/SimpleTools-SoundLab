@@ -425,9 +425,9 @@ private fun History(tr: Copy, sessions: List<Session>, select: (Session) -> Unit
 private data class LoadedPoints(val points: List<Point> = emptyList(), val failed: Boolean = false)
 @Composable
 private fun sessionPoints(model: SoundViewModel, id: String?): LoadedPoints {
-    val state by produceState(LoadedPoints(), id) {
-        value = LoadedPoints()
-        if (id != null) value = try {
+    var state by remember(id) { mutableStateOf(LoadedPoints()) }
+    LaunchedEffect(model, id) {
+        if (id != null) state = try {
             LoadedPoints(model.points(id))
         } catch (error: CancellationException) {
             throw error
