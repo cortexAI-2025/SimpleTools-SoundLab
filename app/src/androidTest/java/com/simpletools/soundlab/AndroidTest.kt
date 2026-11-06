@@ -47,13 +47,17 @@ class AndroidTest {
         val session = example()
         val point = point()
         fun open() = Room.databaseBuilder(context, SoundDatabase::class.java, name).build()
+        suspend fun withDatabase(block: suspend (SoundDatabase) -> Unit) {
+            val database = open()
+            try { block(database) } finally { database.close() }
+        }
         try {
-            open().use { database ->
+            withDatabase { database ->
                 val repository = SessionRepository(database)
                 repository.create(session)
                 repository.checkpoint(session, listOf(point))
             }
-            open().use { database ->
+            withDatabase { database ->
                 val repository = SessionRepository(database)
                 repository.recover()
                 val restored = repository.sessions.first().single()
